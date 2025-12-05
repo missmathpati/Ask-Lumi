@@ -1,2 +1,2 @@
-# Lumi-
+# Lumi
 Multimodal Shopping Bot 

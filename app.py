@@ -855,13 +855,24 @@ def main():
             # Responsive logo sizing
             st.image("Lumi_logo.png", width=200)
     
-    # Check for OpenAI API key
-    if 'openai_api_key' not in st.session_state or not st.session_state.openai_api_key:
+    # Check for OpenAI API key - prioritize Streamlit secrets (for cloud deployment)
+    # then check environment variable, then session state
+    api_key = None
+    if hasattr(st, 'secrets') and 'OPENAI_API_KEY' in st.secrets:
+        api_key = st.secrets['OPENAI_API_KEY']
+    elif os.getenv('OPENAI_API_KEY'):
+        api_key = os.getenv('OPENAI_API_KEY')
+    elif 'openai_api_key' in st.session_state and st.session_state.openai_api_key:
+        api_key = st.session_state.openai_api_key
+    
+    if not api_key:
         st.markdown("---")
         st.markdown("### 🔑 OpenAI API Key Required")
         st.markdown("""
         Please enter your OpenAI API key to use Lumi. Your key will be stored securely in this session 
         and will not be shared or saved permanently.
+        
+        **For Streamlit Cloud:** Set your API key in the app's secrets management.
         """)
         
         api_key_input = st.text_input(
@@ -884,6 +895,9 @@ def main():
         
         st.info("💡 **Note:** Your API key is only stored in your browser session and will be cleared when you close the app.")
         st.stop()
+    else:
+        # Store in session state for consistency
+        st.session_state.openai_api_key = api_key
     
     # Initialize system with progress indicators
     cache_exists = os.path.exists("embeddings_cache.pkl")
@@ -895,7 +909,7 @@ def main():
     # Show loading status
     with st.spinner("Loading system... Please wait. Check terminal for detailed progress."):
         try:
-            loader, retriever, rag = load_system(api_key=st.session_state.openai_api_key)
+            loader, retriever, rag = load_system(api_key=api_key)
             st.success("✓ **System loaded successfully!** Ready to use.")
         except Exception as e:
             st.error(f"❌ **Error loading system:** {str(e)}")

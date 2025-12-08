@@ -35,14 +35,16 @@ def load_system(api_key):
 
 def display_product_card(product_row, idx):
     """Display a product card with image and details."""
-    col1, col2 = st.columns([1, 2])
+    # Use responsive columns - stack on mobile, side-by-side on desktop
+    col1, col2 = st.columns([1, 2], gap="medium")
     
     with col1:
         image_path = product_row.get("image_path", None)
         if image_path and os.path.exists(image_path):
             try:
                 img = Image.open(image_path)
-                st.image(img, width=300)
+                # Responsive image width - use None for responsive behavior
+                st.image(img, width=None)
             except Exception:
                 st.write("Image not available")
         else:
@@ -64,6 +66,9 @@ def main():
         layout="wide",
         initial_sidebar_state="expanded"
     )
+    
+    # Add viewport meta tag for mobile responsiveness
+    st.markdown('<meta name="viewport" content="width=device-width, initial-scale=1.0">', unsafe_allow_html=True)
     
     # Custom CSS for chatbot styling with animations
     st.markdown("""
@@ -409,6 +414,238 @@ def main():
             padding: 2rem 0;
             font-size: 0.9rem;
         }
+        
+        /* Mobile Responsive Styles */
+        @media screen and (max-width: 768px) {
+            /* Adjust main title for mobile */
+            .main-title {
+                font-size: 2.5rem !important;
+                padding: 0 1rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem !important;
+                padding: 0 1rem;
+            }
+            
+            /* Make chat bubbles full width on mobile */
+            .chat-bubble {
+                max-width: 95% !important;
+                padding: 0.75rem 1rem !important;
+                font-size: 0.9rem;
+            }
+            
+            /* Adjust chat container */
+            .chat-container {
+                padding: 1rem !important;
+                margin: 0.5rem 0 !important;
+            }
+            
+            /* Make buttons touch-friendly */
+            .stButton > button {
+                padding: 0.9rem 1.5rem !important;
+                font-size: 1rem !important;
+                min-height: 44px; /* iOS touch target minimum */
+            }
+            
+            /* Adjust input fields */
+            .stTextInput > div > div > input {
+                padding: 0.9rem 1rem !important;
+                font-size: 1rem !important;
+                min-height: 44px;
+            }
+            
+            /* Stack columns on mobile */
+            .main .block-container {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+                padding-top: 1rem !important;
+            }
+            
+            /* Adjust logo size */
+            .stImage img {
+                max-width: 150px !important;
+            }
+            
+            /* Product cards full width on mobile */
+            .product-card {
+                padding: 1rem !important;
+            }
+            
+            /* Hide or adjust particles on mobile for performance */
+            .particle {
+                display: none;
+            }
+            
+            /* Adjust sidebar */
+            .css-1d391kg {
+                width: 100% !important;
+            }
+            
+            /* Make tabs more mobile-friendly */
+            .stTabs [data-baseweb="tab"] {
+                padding: 0.75rem 1rem !important;
+                font-size: 0.9rem !important;
+            }
+            
+            /* Adjust thinking animation */
+            .lumi-thinking {
+                padding: 1rem !important;
+                font-size: 0.9rem !important;
+            }
+            
+            /* Footer adjustments */
+            .footer {
+                padding: 1rem 0 !important;
+                font-size: 0.8rem !important;
+            }
+            
+            /* Video container on mobile */
+            .stVideo {
+                width: 100% !important;
+            }
+        }
+        
+        /* Tablet Responsive Styles */
+        @media screen and (min-width: 769px) and (max-width: 1024px) {
+            .main-title {
+                font-size: 3rem !important;
+            }
+            
+            .subtitle {
+                font-size: 1.1rem !important;
+            }
+            
+            .chat-bubble {
+                max-width: 85% !important;
+            }
+            
+            .stButton > button {
+                padding: 0.8rem 2rem !important;
+            }
+            
+            /* Reduce particle count on tablets */
+            .particle:nth-child(4),
+            .particle:nth-child(5),
+            .particle:nth-child(6) {
+                display: none;
+            }
+        }
+        
+        /* Ensure sidebar is collapsible on mobile */
+        @media screen and (max-width: 768px) {
+            [data-testid="stSidebar"] {
+                width: 100% !important;
+            }
+            
+            [data-testid="stSidebar"][aria-expanded="false"] {
+                width: 0 !important;
+            }
+        }
+        
+        /* Touch-friendly expanders */
+        @media screen and (max-width: 768px) {
+            .streamlit-expanderHeader {
+                padding: 1rem !important;
+                font-size: 1rem !important;
+                min-height: 48px;
+                display: flex;
+                align-items: center;
+            }
+        }
+        
+        /* Image responsiveness */
+        @media screen and (max-width: 768px) {
+            img {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            
+            /* Product images in cards */
+            .product-card img {
+                width: 100% !important;
+                max-width: 300px !important;
+            }
+            
+            /* Streamlit image containers */
+            .stImage img,
+            [data-testid="stImage"] img {
+                max-width: 100% !important;
+                width: 100% !important;
+                height: auto !important;
+            }
+        }
+        
+        /* General image responsiveness for all screen sizes */
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Streamlit image wrapper */
+        .stImage,
+        [data-testid="stImage"] {
+            width: 100%;
+        }
+        
+        .stImage img,
+        [data-testid="stImage"] img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Prevent horizontal scroll on mobile */
+        .stApp {
+            overflow-x: hidden;
+        }
+        
+        /* Improve text readability on small screens */
+        @media screen and (max-width: 768px) {
+            p, li, span {
+                line-height: 1.6 !important;
+            }
+            
+            h1, h2, h3 {
+                line-height: 1.3 !important;
+            }
+            
+            /* Make sidebar collapsible on mobile */
+            [data-testid="stSidebar"] {
+                min-width: 0px !important;
+            }
+            
+            /* Adjust API key input section */
+            .stTextInput {
+                width: 100% !important;
+            }
+            
+            /* Make file uploader touch-friendly */
+            .stFileUploader {
+                width: 100% !important;
+            }
+            
+            /* Adjust info boxes */
+            .stInfo, .stSuccess, .stWarning, .stError {
+                font-size: 0.9rem !important;
+                padding: 0.75rem !important;
+            }
+            
+            /* Better spacing for tabs */
+            .stTabs [data-baseweb="tab-list"] {
+                flex-wrap: wrap;
+            }
+        }
+        
+        /* Landscape mobile orientation */
+        @media screen and (max-width: 768px) and (orientation: landscape) {
+            .main-title {
+                font-size: 2rem !important;
+            }
+            
+            .splash-content {
+                padding: 1rem !important;
+            }
+        }
     </style>
     """, unsafe_allow_html=True)
     
@@ -504,6 +741,38 @@ def main():
                 position: relative;
                 z-index: 1;
             }
+            
+            /* Mobile responsive splash screen */
+            @media screen and (max-width: 768px) {
+                .splash-circle {
+                    width: 80px !important;
+                    height: 80px !important;
+                }
+                
+                .splash-circle-blue {
+                    width: 100px !important;
+                    height: 100px !important;
+                }
+                
+                .splash-circle-purple,
+                .splash-circle-pink {
+                    width: 80px !important;
+                    height: 80px !important;
+                }
+                
+                .splash-circle-blue-small,
+                .splash-circle-purple-small,
+                .splash-circle-pink-small {
+                    width: 60px !important;
+                    height: 60px !important;
+                }
+                
+                /* Hide some circles on very small screens */
+                .splash-circle-purple-small,
+                .splash-circle-pink-small {
+                    display: none;
+                }
+            }
         </style>
         """, unsafe_allow_html=True)
         
@@ -534,25 +803,25 @@ def main():
                 video_base64 = base64.b64encode(video_bytes).decode()
                 
                 st.markdown(f"""
-                <div style="margin: 2rem auto; max-width: 500px;">
-                    <video autoplay loop muted playsinline style="width: 100%; display: block;">
+                <div style="margin: 1rem auto; max-width: min(500px, 90vw); padding: 0 1rem;">
+                    <video autoplay loop muted playsinline style="width: 100%; display: block; max-width: 100%; height: auto;">
                         <source src="data:video/mp4;base64,{video_base64}" type="video/mp4">
                     </video>
                 </div>
                 """, unsafe_allow_html=True)
             
-            # Centered text under video
+            # Centered text under video - responsive font size
             st.markdown("""
-            <div style="margin-top: 3rem; text-align: center;">
-                <p style="color: #2d3748; font-size: 1.5rem; font-weight: 600; margin-bottom: 2rem; animation: fadeIn 1s ease-out;">
+            <div style="margin-top: 2rem; text-align: center; padding: 0 1rem;">
+                <p style="color: #2d3748; font-size: clamp(1rem, 4vw, 1.5rem); font-weight: 600; margin-bottom: 2rem; animation: fadeIn 1s ease-out;">
                     💬 Hi, I am Lumi, Your intelligent product discovery chatbot
                 </p>
             </div>
             </div>
             """, unsafe_allow_html=True)
             
-            # Button to continue with animation
-            col1, col2, col3 = st.columns([1, 1, 1])
+            # Button to continue with animation - responsive columns
+            col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
                 if st.button("🚀 Get Started", use_container_width=True, key="start_button"):
                     # Add transition animation
@@ -579,13 +848,12 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Header with just logo centered
+    # Header with just logo centered - responsive
     header_col1, header_col2, header_col3 = st.columns([1, 2, 1])
     with header_col2:
         if os.path.exists("Lumi_logo.png"):
-            logo_col1, logo_col2, logo_col3 = st.columns([1, 2, 1])
-            with logo_col2:
-                st.image("Lumi_logo.png", width=200)
+            # Responsive logo sizing
+            st.image("Lumi_logo.png", width=200)
     
     # Check for OpenAI API key
     if 'openai_api_key' not in st.session_state or not st.session_state.openai_api_key:
@@ -603,7 +871,8 @@ def main():
             help="Enter your OpenAI API key. You can get one from https://platform.openai.com/api-keys"
         )
         
-        col1, col2, col3 = st.columns([1, 1, 1])
+        # Responsive button layout
+        col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             if st.button("🔓 Submit API Key", use_container_width=True):
                 if api_key_input.strip():
@@ -710,7 +979,8 @@ def main():
             help="💡 Tip: Be specific about features, price range, or use case"
         )
         
-        col1, col2, col3 = st.columns([1, 1, 4])
+        # Responsive button layout - stack on mobile
+        col1, col2 = st.columns([1, 1], gap="small")
         with col1:
             search_clicked = st.button("💬 Send", key="text_search", use_container_width=True)
         with col2:
@@ -773,12 +1043,10 @@ def main():
         )
         
         if uploaded_file is not None:
-            # Display uploaded image in a styled container
+            # Display uploaded image in a styled container - responsive
             st.markdown("---")
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                image = Image.open(uploaded_file)
-                st.image(image, caption="📷 Your Uploaded Image", width=500)
+            image = Image.open(uploaded_file)
+            st.image(image, caption="📷 Your Uploaded Image", width=None)
             
             # Text query input (recommended for better results)
             st.markdown("---")
@@ -878,17 +1146,18 @@ def main():
                     # Show up to 5 products with images in a grid-like layout
                     num_to_show = min(num_results, 5)
                     for idx, (_, product) in enumerate(retrieved.head(num_to_show).iterrows(), 1):
-                        # Create a card-like container
-                        st.markdown(f'<div style="background: white; border-radius: 12px; padding: 1.5rem; margin: 1rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">', unsafe_allow_html=True)
+                        # Create a card-like container - responsive padding
+                        st.markdown(f'<div style="background: white; border-radius: 12px; padding: clamp(1rem, 3vw, 1.5rem); margin: 1rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">', unsafe_allow_html=True)
                         
-                        col1, col2 = st.columns([1, 2])
+                        # Responsive columns - stack on mobile
+                        col1, col2 = st.columns([1, 2], gap="medium")
                         
                         with col1:
                             image_path = product.get("image_path", None)
                             if image_path and os.path.exists(image_path):
                                 try:
                                     img = Image.open(image_path)
-                                    st.image(img, width=300)
+                                    st.image(img, width=None)
                                 except Exception:
                                     st.write("Image not available")
                             else:

@@ -7,6 +7,8 @@ import pandas as pd
 from PIL import Image
 import os
 import sys
+import requests
+from io import BytesIO
 
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -33,6 +35,26 @@ def load_system(api_key):
     return loader, retriever, rag
 
 
+def load_image_from_path_or_url(path_or_url):
+    """Load image from local path or URL."""
+    if not path_or_url or pd.isna(path_or_url):
+        return None
+    try:
+        # Check if it's a URL
+        if isinstance(path_or_url, str) and (path_or_url.startswith("http://") or path_or_url.startswith("https://")):
+            # Download from URL
+            response = requests.get(path_or_url, timeout=10, stream=True)
+            response.raise_for_status()
+            img = Image.open(BytesIO(response.content)).convert("RGB")
+            return img
+        elif os.path.exists(path_or_url):
+            # Local file path
+            return Image.open(path_or_url).convert("RGB")
+        else:
+            return None
+    except Exception:
+        return None
+
 def display_product_card(product_row, idx):
     """Display a product card with image and details."""
     # Use responsive columns - stack on mobile, side-by-side on desktop
@@ -40,13 +62,10 @@ def display_product_card(product_row, idx):
     
     with col1:
         image_path = product_row.get("image_path", None)
-        if image_path and os.path.exists(image_path):
-            try:
-                img = Image.open(image_path)
-                # Responsive image width - use None for responsive behavior
-                st.image(img, width=None)
-            except Exception:
-                st.write("Image not available")
+        img = load_image_from_path_or_url(image_path)
+        if img:
+            # Responsive image width - use None for responsive behavior
+            st.image(img, width=None)
         else:
             st.write("Image not available")
     
@@ -855,24 +874,13 @@ def main():
             # Responsive logo sizing
             st.image("Lumi_logo.png", width=200)
     
-    # Check for OpenAI API key - prioritize Streamlit secrets (for cloud deployment)
-    # then check environment variable, then session state
-    api_key = None
-    if hasattr(st, 'secrets') and 'OPENAI_API_KEY' in st.secrets:
-        api_key = st.secrets['OPENAI_API_KEY']
-    elif os.getenv('OPENAI_API_KEY'):
-        api_key = os.getenv('OPENAI_API_KEY')
-    elif 'openai_api_key' in st.session_state and st.session_state.openai_api_key:
-        api_key = st.session_state.openai_api_key
-    
-    if not api_key:
+    # Check for OpenAI API key
+    if 'openai_api_key' not in st.session_state or not st.session_state.openai_api_key:
         st.markdown("---")
         st.markdown("### 🔑 OpenAI API Key Required")
         st.markdown("""
         Please enter your OpenAI API key to use Lumi. Your key will be stored securely in this session 
         and will not be shared or saved permanently.
-        
-        **For Streamlit Cloud:** Set your API key in the app's secrets management.
         """)
         
         api_key_input = st.text_input(
@@ -895,9 +903,6 @@ def main():
         
         st.info("💡 **Note:** Your API key is only stored in your browser session and will be cleared when you close the app.")
         st.stop()
-    else:
-        # Store in session state for consistency
-        st.session_state.openai_api_key = api_key
     
     # Initialize system with progress indicators
     cache_exists = os.path.exists("embeddings_cache.pkl")
@@ -909,7 +914,7 @@ def main():
     # Show loading status
     with st.spinner("Loading system... Please wait. Check terminal for detailed progress."):
         try:
-            loader, retriever, rag = load_system(api_key=api_key)
+            loader, retriever, rag = load_system(api_key=st.session_state.openai_api_key)
             st.success("✓ **System loaded successfully!** Ready to use.")
         except Exception as e:
             st.error(f"❌ **Error loading system:** {str(e)}")
@@ -1168,12 +1173,9 @@ def main():
                         
                         with col1:
                             image_path = product.get("image_path", None)
-                            if image_path and os.path.exists(image_path):
-                                try:
-                                    img = Image.open(image_path)
-                                    st.image(img, width=None)
-                                except Exception:
-                                    st.write("Image not available")
+                            img = load_image_from_path_or_url(image_path)
+                            if img:
+                                st.image(img, width=None)
                             else:
                                 st.write("Image not available")
                         

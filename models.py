@@ -12,6 +12,9 @@ from transformers import CLIPModel, CLIPProcessor
 from PIL import Image
 from tqdm import tqdm
 import os
+import requests
+from io import BytesIO
+from urllib.parse import urlparse
 
 
 class ClipHead(nn.Module):
@@ -185,8 +188,22 @@ class ModelLoader:
                     "The CSV has an 'Image' column but all values are empty or invalid."
                 )
             
+            # Create image_path column from Image URLs for cloud deployment
+            self._log("Creating image_path column from Image URLs...")
+            def get_image_url(row):
+                """Extract first image URL from Image column."""
+                img_col = row.get("Image", None)
+                if pd.isna(img_col) or not isinstance(img_col, str):
+                    return None
+                # Image column may contain multiple URLs separated by |
+                urls = img_col.split("|")
+                first_url = urls[0].strip() if urls else None
+                return first_url if first_url and first_url.startswith("http") else None
+            
+            self.df["image_path"] = self.df.apply(get_image_url, axis=1)
+            self.df = self.df[self.df["image_path"].notna()].reset_index(drop=True)
             self._log(f"✓ Loaded {len(self.df)} products with Image URLs")
-            self._log("Note: Images will need to be downloaded or image_path created for full functionality")
+            self._log("Note: Images will be loaded from URLs (cloud-friendly)")
         else:
             raise ValueError(
                 "❌ No image data found in CSV!\n\n"
@@ -268,6 +285,33 @@ class ModelLoader:
         self.index.add(self.item_embs.astype("float32"))
         self._log(f"✓ FAISS index built with {self.index.ntotal} vectors")
         
+    def _load_image_from_path_or_url(self, path_or_url):
+        """Load image from local path or URL."""
+        if pd.isna(path_or_url) or not isinstance(path_or_url, str):
+            return Image.new("RGB", (224, 224), (255, 255, 255))
+        
+        try:
+            # Check if it's a URL
+            if path_or_url.startswith("http://") or path_or_url.startswith("https://"):
+                # Download from URL
+                try:
+                    response = requests.get(path_or_url, timeout=10, stream=True)
+                    response.raise_for_status()
+                    img = Image.open(BytesIO(response.content)).convert("RGB")
+                    return img
+                except Exception as e:
+                    self._log(f"Warning: Failed to load image from URL {path_or_url[:50]}... Error: {str(e)[:50]}")
+                    return Image.new("RGB", (224, 224), (255, 255, 255))
+            else:
+                # Local file path
+                if os.path.exists(path_or_url):
+                    return Image.open(path_or_url).convert("RGB")
+                else:
+                    return Image.new("RGB", (224, 224), (255, 255, 255))
+        except Exception as e:
+            self._log(f"Warning: Failed to load image from {path_or_url[:50] if isinstance(path_or_url, str) else 'unknown'}... Error: {str(e)[:50]}")
+            return Image.new("RGB", (224, 224), (255, 255, 255))
+    
     def _compute_embeddings(self, batch_size=64):
         """Compute combined text+image embeddings for all products."""
         # Ensure we have products to process
@@ -275,19 +319,25 @@ class ModelLoader:
             raise ValueError(
                 "No products found in dataframe. Check that:\n"
                 "1. The CSV file exists and has data\n"
-                "2. Products have valid image paths\n"
-                "3. Image files exist in the 'images/' directory"
+                "2. Products have valid image paths or URLs\n"
+                "3. Image files exist locally OR Image URLs are accessible"
             )
         
         # Ensure we have the required columns
         if "product_text" not in self.df.columns:
             raise ValueError("Missing 'product_text' column in dataframe")
         
-        if "image_path" not in self.df.columns:
-            raise ValueError("Missing 'image_path' column. Run load_data() first.")
+        # image_path can be local path or URL
+        if "image_path" not in self.df.columns and "Image" not in self.df.columns:
+            raise ValueError("Missing 'image_path' or 'Image' column. Run load_data() first.")
         
         texts = self.df["product_text"].tolist()
-        paths = self.df["image_path"].tolist()
+        # Use image_path if available, otherwise fall back to Image column
+        if "image_path" in self.df.columns:
+            paths = self.df["image_path"].tolist()
+        else:
+            # Extract first URL from Image column
+            paths = self.df["Image"].apply(lambda x: x.split("|")[0].strip() if pd.notna(x) and isinstance(x, str) else None).tolist()
         
         all_text_embs = []
         all_image_embs = []
@@ -304,22 +354,10 @@ class ModelLoader:
             batch_texts = texts[start:end]
             batch_paths = paths[start:end]
             
-            # Load images
+            # Load images (from local files or URLs)
             images = []
             for p in batch_paths:
-                if pd.isna(p) or not isinstance(p, str):
-                    # Use blank image if path is invalid
-                    img = Image.new("RGB", (224, 224), (255, 255, 255))
-                else:
-                    try:
-                        if os.path.exists(p):
-                            img = Image.open(p).convert("RGB")
-                        else:
-                            # File doesn't exist, use blank image
-                            img = Image.new("RGB", (224, 224), (255, 255, 255))
-                    except Exception:
-                        # Any error loading image, use blank
-                        img = Image.new("RGB", (224, 224), (255, 255, 255))
+                img = self._load_image_from_path_or_url(p)
                 images.append(img)
             
             # Process

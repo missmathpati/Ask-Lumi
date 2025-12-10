@@ -5,6 +5,9 @@ Retrieval module for text and image-based product search.
 import torch
 import numpy as np
 from PIL import Image
+import requests
+from io import BytesIO
+import os
 
 
 class ProductRetriever:
@@ -48,10 +51,22 @@ class ProductRetriever:
         """Encode an image query into an embedding."""
         if isinstance(image_path_or_pil, str):
             try:
-                image = Image.open(image_path_or_pil).convert("RGB")
+                # Check if it's a URL
+                if image_path_or_pil.startswith("http://") or image_path_or_pil.startswith("https://"):
+                    # Download from URL
+                    response = requests.get(image_path_or_pil, timeout=10, stream=True)
+                    response.raise_for_status()
+                    image = Image.open(BytesIO(response.content)).convert("RGB")
+                elif os.path.exists(image_path_or_pil):
+                    # Local file path
+                    image = Image.open(image_path_or_pil).convert("RGB")
+                else:
+                    # Invalid path
+                    image = Image.new("RGB", (224, 224), (255, 255, 255))
             except Exception:
                 image = Image.new("RGB", (224, 224), (255, 255, 255))
         else:
+            # Already a PIL Image
             image = image_path_or_pil.convert("RGB")
         
         inputs = self.processor(

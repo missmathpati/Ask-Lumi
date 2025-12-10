@@ -64,8 +64,8 @@ def display_product_card(product_row, idx):
         image_path = product_row.get("image_path", None)
         img = load_image_from_path_or_url(image_path)
         if img:
-            # Responsive image width - use None for responsive behavior
-            st.image(img, width=None)
+            # Responsive image - Streamlit handles width automatically
+            st.image(img, use_container_width=True)
         else:
             st.write("Image not available")
     
@@ -1065,7 +1065,7 @@ def main():
             # Display uploaded image in a styled container - responsive
             st.markdown("---")
             image = Image.open(uploaded_file)
-            st.image(image, caption="📷 Your Uploaded Image", width=None)
+            st.image(image, caption="📷 Your Uploaded Image", use_container_width=True)
             
             # Text query input (recommended for better results)
             st.markdown("---")
@@ -1175,7 +1175,7 @@ def main():
                             image_path = product.get("image_path", None)
                             img = load_image_from_path_or_url(image_path)
                             if img:
-                                st.image(img, width=None)
+                                st.image(img, use_container_width=True)
                             else:
                                 st.write("Image not available")
                         
